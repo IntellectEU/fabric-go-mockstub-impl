@@ -162,6 +162,10 @@ func (stub *customMockStub) GetPrivateData(collection string, key string) ([]byt
 	return m[key], nil
 }
 
+func (stub *customMockStub) GetPrivateDataHash(collection, key string) ([]byte, error) {
+	return nil, errors.New("Not Implemented")
+}
+
 func (stub *customMockStub) PutPrivateData(collection string, key string, value []byte) error {
 	m, in := stub.PvtState[collection]
 	if !in {
