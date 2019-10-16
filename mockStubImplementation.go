@@ -24,7 +24,7 @@ const (
 // Logger for the shim package.
 var mockLogger = logging.MustGetLogger("mock")
 
-type customMockStub struct {
+type CustomMockStub struct {
 	// arguments the stub was called with
 	args [][]byte
 
@@ -42,7 +42,7 @@ type customMockStub struct {
 	Keys *list.List
 
 	// registered list of other MockStub chaincodes that can be called from this MockStub
-	Invokables map[string]*customMockStub
+	Invokables map[string]*CustomMockStub
 
 	// stores a transaction uuid while being Invoked / Deployed
 	// TODO if a chaincode uses recursion this may need to be a stack of TxIDs or possibly a reference counting map
@@ -71,19 +71,19 @@ type customMockStub struct {
 	//*shim.MockStub
 }
 
-func (stub *customMockStub) GetTxID() string {
+func (stub *CustomMockStub) GetTxID() string {
 	return stub.TxID
 }
 
-func (stub *customMockStub) GetChannelID() string {
+func (stub *CustomMockStub) GetChannelID() string {
 	return stub.ChannelID
 }
 
-func (stub *customMockStub) GetArgs() [][]byte {
+func (stub *CustomMockStub) GetArgs() [][]byte {
 	return stub.args
 }
 
-func (stub *customMockStub) GetStringArgs() []string {
+func (stub *CustomMockStub) GetStringArgs() []string {
 	args := stub.GetArgs()
 	strargs := make([]string, 0, len(args))
 	for _, barg := range args {
@@ -92,7 +92,7 @@ func (stub *customMockStub) GetStringArgs() []string {
 	return strargs
 }
 
-func (stub *customMockStub) GetFunctionAndParameters() (function string, params []string) {
+func (stub *CustomMockStub) GetFunctionAndParameters() (function string, params []string) {
 	allargs := stub.GetStringArgs()
 	function = ""
 	params = []string{}
@@ -106,14 +106,14 @@ func (stub *customMockStub) GetFunctionAndParameters() (function string, params 
 // Used to indicate to a chaincode that it is part of a transaction.
 // This is important when chaincodes invoke each other.
 // MockStub doesn't support concurrent transactions at present.
-func (stub *customMockStub) MockTransactionStart(txid string) {
+func (stub *CustomMockStub) MockTransactionStart(txid string) {
 	stub.TxID = txid
 	stub.setSignedProposal(&pb.SignedProposal{})
 	stub.setTxTimestamp(util.CreateUtcTimestamp())
 }
 
 // End a mocked transaction, clearing the UUID.
-func (stub *customMockStub) MockTransactionEnd(uuid string) {
+func (stub *CustomMockStub) MockTransactionEnd(uuid string) {
 	stub.signedProposal = nil
 	stub.TxID = ""
 }
@@ -121,11 +121,11 @@ func (stub *customMockStub) MockTransactionEnd(uuid string) {
 // Register a peer chaincode with this MockStub
 // invokableChaincodeName is the name or hash of the peer
 // otherStub is a MockStub of the peer, already intialised
-func (stub *customMockStub) MockPeerChaincode(invokableChaincodeName string, otherStub *shim.MockStub) {
+func (stub *CustomMockStub) MockPeerChaincode(invokableChaincodeName string, otherStub *shim.MockStub) {
 }
 
 // Initialise this chaincode,  also starts and ends a transaction.
-func (stub *customMockStub) MockInit(uuid string, args [][]byte) pb.Response {
+func (stub *CustomMockStub) MockInit(uuid string, args [][]byte) pb.Response {
 	stub.args = args
 	stub.MockTransactionStart(uuid)
 	res := stub.cc.Init(stub)
@@ -134,7 +134,7 @@ func (stub *customMockStub) MockInit(uuid string, args [][]byte) pb.Response {
 }
 
 // Invoke this chaincode, also starts and ends a transaction.
-func (stub *customMockStub) MockInvoke(uuid string, args [][]byte) pb.Response {
+func (stub *CustomMockStub) MockInvoke(uuid string, args [][]byte) pb.Response {
 	stub.args = args
 	stub.MockTransactionStart(uuid)
 	res := stub.cc.Invoke(stub)
@@ -143,7 +143,7 @@ func (stub *customMockStub) MockInvoke(uuid string, args [][]byte) pb.Response {
 }
 
 // Invoke this chaincode, also starts and ends a transaction.
-func (stub *customMockStub) MockInvokeWithSignedProposal(uuid string, args [][]byte, sp *pb.SignedProposal) pb.Response {
+func (stub *CustomMockStub) MockInvokeWithSignedProposal(uuid string, args [][]byte, sp *pb.SignedProposal) pb.Response {
 	stub.args = args
 	stub.MockTransactionStart(uuid)
 	stub.signedProposal = sp
@@ -152,7 +152,7 @@ func (stub *customMockStub) MockInvokeWithSignedProposal(uuid string, args [][]b
 	return res
 }
 
-func (stub *customMockStub) GetPrivateData(collection string, key string) ([]byte, error) {
+func (stub *CustomMockStub) GetPrivateData(collection string, key string) ([]byte, error) {
 	m, in := stub.PvtState[collection]
 
 	if !in {
@@ -162,11 +162,11 @@ func (stub *customMockStub) GetPrivateData(collection string, key string) ([]byt
 	return m[key], nil
 }
 
-func (stub *customMockStub) GetPrivateDataHash(collection, key string) ([]byte, error) {
+func (stub *CustomMockStub) GetPrivateDataHash(collection, key string) ([]byte, error) {
 	return nil, errors.New("Not Implemented")
 }
 
-func (stub *customMockStub) PutPrivateData(collection string, key string, value []byte) error {
+func (stub *CustomMockStub) PutPrivateData(collection string, key string, value []byte) error {
 	m, in := stub.PvtState[collection]
 	if !in {
 		stub.PvtState[collection] = make(map[string][]byte)
@@ -178,23 +178,23 @@ func (stub *customMockStub) PutPrivateData(collection string, key string, value 
 	return nil
 }
 
-func (stub *customMockStub) GetDecorations() map[string][]byte {
+func (stub *CustomMockStub) GetDecorations() map[string][]byte {
 	return stub.Decorations
 }
 
-func (stub *customMockStub) DelPrivateData(collection string, key string) error {
+func (stub *CustomMockStub) DelPrivateData(collection string, key string) error {
 	return errors.New("Not Implemented")
 }
 
-func (stub *customMockStub) GetPrivateDataByRange(collection, startKey, endKey string) (shim.StateQueryIteratorInterface, error) {
+func (stub *CustomMockStub) GetPrivateDataByRange(collection, startKey, endKey string) (shim.StateQueryIteratorInterface, error) {
 	return nil, errors.New("Not Implemented")
 }
 
-func (stub *customMockStub) GetPrivateDataByPartialCompositeKey(collection, objectType string, attributes []string) (shim.StateQueryIteratorInterface, error) {
+func (stub *CustomMockStub) GetPrivateDataByPartialCompositeKey(collection, objectType string, attributes []string) (shim.StateQueryIteratorInterface, error) {
 	return nil, errors.New("Not Implemented")
 }
 
-func (stub *customMockStub) GetPrivateDataQueryResult(collection, query string) (shim.StateQueryIteratorInterface, error) {
+func (stub *CustomMockStub) GetPrivateDataQueryResult(collection, query string) (shim.StateQueryIteratorInterface, error) {
 	// Not implemented since the mock engine does not have a query engine.
 	// However, a very simple query engine that supports string matching
 	// could be implemented to test that the framework supports queries
@@ -202,14 +202,14 @@ func (stub *customMockStub) GetPrivateDataQueryResult(collection, query string) 
 }
 
 // GetState retrieves the value for a given key from the ledger
-func (stub *customMockStub) GetState(key string) ([]byte, error) {
+func (stub *CustomMockStub) GetState(key string) ([]byte, error) {
 	value := stub.State[key]
 	mockLogger.Debug("MockStub", stub.Name, "Getting", key, value)
 	return value, nil
 }
 
 // PutState writes the specified `value` and `key` into the ledger.
-func (stub *customMockStub) PutState(key string, value []byte) error {
+func (stub *CustomMockStub) PutState(key string, value []byte) error {
 	if stub.TxID == "" {
 		err := errors.New("cannot PutState without a transactions - call stub.MockTransactionStart()?")
 		mockLogger.Errorf("%+v", err)
@@ -259,7 +259,7 @@ func (stub *customMockStub) PutState(key string, value []byte) error {
 }
 
 // DelState removes the specified `key` and its value from the ledger.
-func (stub *customMockStub) DelState(key string) error {
+func (stub *CustomMockStub) DelState(key string) error {
 	mockLogger.Debug("MockStub", stub.Name, "Deleting", key, stub.State[key])
 	delete(stub.State, key)
 
@@ -272,7 +272,7 @@ func (stub *customMockStub) DelState(key string) error {
 	return nil
 }
 
-func (stub *customMockStub) GetStateByRange(startKey, endKey string) (shim.StateQueryIteratorInterface, error) {
+func (stub *CustomMockStub) GetStateByRange(startKey, endKey string) (shim.StateQueryIteratorInterface, error) {
 	return nil, errors.Errorf("Not implemented")
 }
 
@@ -281,7 +281,7 @@ func (stub *customMockStub) GetStateByRange(startKey, endKey string) (shim.State
 // that support rich query.  The query string is in the syntax of the underlying
 // state database. An iterator is returned which can be used to iterate (next) over
 // the query result set
-func (stub *customMockStub) GetQueryResult(query string) (shim.StateQueryIteratorInterface, error) {
+func (stub *CustomMockStub) GetQueryResult(query string) (shim.StateQueryIteratorInterface, error) {
 	var selector map[string]*json.RawMessage
 	if err := json.Unmarshal([]byte(query), &selector); err != nil {
 		return nil, errors.New(fmt.Sprintf("Unable to read rich query selector %s: %s", query, err.Error()))
@@ -316,7 +316,7 @@ func (stub *customMockStub) GetQueryResult(query string) (shim.StateQueryIterato
 
 // GetHistoryForKey function can be invoked by a chaincode to return a history of
 // key values across time. GetHistoryForKey is intended to be used for read-only queries.
-func (stub *customMockStub) GetHistoryForKey(key string) (shim.HistoryQueryIteratorInterface, error) {
+func (stub *CustomMockStub) GetHistoryForKey(key string) (shim.HistoryQueryIteratorInterface, error) {
 	return nil, errors.New("not implemented")
 }
 
@@ -326,7 +326,7 @@ func (stub *customMockStub) GetHistoryForKey(key string) (shim.HistoryQueryItera
 //matches the given partial composite key. This function should be used only for
 //a partial composite key. For a full composite key, an iter with empty response
 //would be returned.
-func (stub *customMockStub) GetStateByPartialCompositeKey(objectType string, attributes []string) (shim.StateQueryIteratorInterface, error) {
+func (stub *CustomMockStub) GetStateByPartialCompositeKey(objectType string, attributes []string) (shim.StateQueryIteratorInterface, error) {
 	partialCompositeKey, err := stub.CreateCompositeKey(objectType, attributes)
 	if err != nil {
 		return nil, err
@@ -340,29 +340,29 @@ func (stub *customMockStub) GetStateByPartialCompositeKey(objectType string, att
 
 // CreateCompositeKey combines the list of attributes
 //to form a composite key.
-func (stub *customMockStub) CreateCompositeKey(objectType string, attributes []string) (string, error) {
+func (stub *CustomMockStub) CreateCompositeKey(objectType string, attributes []string) (string, error) {
 	baseMockStub := new(shim.MockStub)
 	return baseMockStub.CreateCompositeKey(objectType, attributes)
 }
 
 // SplitCompositeKey splits the composite key into attributes
 // on which the composite key was formed.
-func (stub *customMockStub) SplitCompositeKey(compositeKey string) (string, []string, error) {
+func (stub *CustomMockStub) SplitCompositeKey(compositeKey string) (string, []string, error) {
 	baseMockStub := new(shim.MockStub)
 	return baseMockStub.SplitCompositeKey(compositeKey)
 }
 
-func (stub *customMockStub) GetStateByRangeWithPagination(startKey, endKey string, pageSize int32,
+func (stub *CustomMockStub) GetStateByRangeWithPagination(startKey, endKey string, pageSize int32,
 	bookmark string) (shim.StateQueryIteratorInterface, *pb.QueryResponseMetadata, error) {
 	return nil, nil, nil
 }
 
-func (stub *customMockStub) GetStateByPartialCompositeKeyWithPagination(objectType string, keys []string,
+func (stub *CustomMockStub) GetStateByPartialCompositeKeyWithPagination(objectType string, keys []string,
 	pageSize int32, bookmark string) (shim.StateQueryIteratorInterface, *pb.QueryResponseMetadata, error) {
 	return nil, nil, nil
 }
 
-func (stub *customMockStub) GetQueryResultWithPagination(query string, pageSize int32,
+func (stub *CustomMockStub) GetQueryResultWithPagination(query string, pageSize int32,
 	bookmark string) (shim.StateQueryIteratorInterface, *pb.QueryResponseMetadata, error) {
 	return nil, nil, nil
 }
@@ -371,7 +371,7 @@ func (stub *customMockStub) GetQueryResultWithPagination(query string, pageSize 
 // E.g. stub1.InvokeChaincode("stub2Hash", funcArgs, channel)
 // Before calling this make sure to create another MockStub stub2, call stub2.MockInit(uuid, func, args)
 // and register it with stub1 by calling stub1.MockPeerChaincode("stub2Hash", stub2)
-func (stub *customMockStub) InvokeChaincode(chaincodeName string, args [][]byte, channel string) pb.Response {
+func (stub *CustomMockStub) InvokeChaincode(chaincodeName string, args [][]byte, channel string) pb.Response {
 	// Internally we use chaincode name as a composite name
 	if channel != "" {
 		chaincodeName = chaincodeName + "/" + channel
@@ -386,59 +386,59 @@ func (stub *customMockStub) InvokeChaincode(chaincodeName string, args [][]byte,
 }
 
 // Not implemented
-func (stub *customMockStub) GetCreator() ([]byte, error) {
+func (stub *CustomMockStub) GetCreator() ([]byte, error) {
 	return nil, nil
 }
 
 // Not implemented
-func (stub *customMockStub) GetTransient() (map[string][]byte, error) {
+func (stub *CustomMockStub) GetTransient() (map[string][]byte, error) {
 	return nil, nil
 }
 
 // Not implemented
-func (stub *customMockStub) GetBinding() ([]byte, error) {
+func (stub *CustomMockStub) GetBinding() ([]byte, error) {
 	return nil, nil
 }
 
 // Not implemented
-func (stub *customMockStub) GetSignedProposal() (*pb.SignedProposal, error) {
+func (stub *CustomMockStub) GetSignedProposal() (*pb.SignedProposal, error) {
 	return stub.signedProposal, nil
 }
 
-func (stub *customMockStub) setSignedProposal(sp *pb.SignedProposal) {
+func (stub *CustomMockStub) setSignedProposal(sp *pb.SignedProposal) {
 	stub.signedProposal = sp
 }
 
 // Not implemented
-func (stub *customMockStub) GetArgsSlice() ([]byte, error) {
+func (stub *CustomMockStub) GetArgsSlice() ([]byte, error) {
 	return nil, nil
 }
 
-func (stub *customMockStub) setTxTimestamp(time *timestamp.Timestamp) {
+func (stub *CustomMockStub) setTxTimestamp(time *timestamp.Timestamp) {
 	stub.TxTimestamp = time
 }
 
-func (stub *customMockStub) GetTxTimestamp() (*timestamp.Timestamp, error) {
+func (stub *CustomMockStub) GetTxTimestamp() (*timestamp.Timestamp, error) {
 	if stub.TxTimestamp == nil {
 		return nil, errors.New("TxTimestamp not set.")
 	}
 	return stub.TxTimestamp, nil
 }
 
-func (stub *customMockStub) SetEvent(name string, payload []byte) error {
+func (stub *CustomMockStub) SetEvent(name string, payload []byte) error {
 	stub.ChaincodeEventsChannel <- &pb.ChaincodeEvent{EventName: name, Payload: payload}
 	return nil
 }
 
-func (stub *customMockStub) SetStateValidationParameter(key string, ep []byte) error {
+func (stub *CustomMockStub) SetStateValidationParameter(key string, ep []byte) error {
 	return stub.SetPrivateDataValidationParameter("", key, ep)
 }
 
-func (stub *customMockStub) GetStateValidationParameter(key string) ([]byte, error) {
+func (stub *CustomMockStub) GetStateValidationParameter(key string) ([]byte, error) {
 	return stub.GetPrivateDataValidationParameter("", key)
 }
 
-func (stub *customMockStub) SetPrivateDataValidationParameter(collection, key string, ep []byte) error {
+func (stub *CustomMockStub) SetPrivateDataValidationParameter(collection, key string, ep []byte) error {
 	m, in := stub.EndorsementPolicies[collection]
 	if !in {
 		stub.EndorsementPolicies[collection] = make(map[string][]byte)
@@ -449,7 +449,7 @@ func (stub *customMockStub) SetPrivateDataValidationParameter(collection, key st
 	return nil
 }
 
-func (stub *customMockStub) GetPrivateDataValidationParameter(collection, key string) ([]byte, error) {
+func (stub *CustomMockStub) GetPrivateDataValidationParameter(collection, key string) ([]byte, error) {
 	m, in := stub.EndorsementPolicies[collection]
 
 	if !in {
@@ -460,15 +460,15 @@ func (stub *customMockStub) GetPrivateDataValidationParameter(collection, key st
 }
 
 // Constructor to initialise the internal State map
-func NewMockStub(name string, cc shim.Chaincode) *customMockStub {
+func NewMockStub(name string, cc shim.Chaincode) *CustomMockStub {
 	mockLogger.Debug("MockStub(", name, cc, ")")
-	s := new(customMockStub)
+	s := new(CustomMockStub)
 	s.Name = name
 	s.cc = cc
 	s.State = make(map[string][]byte)
 	s.PvtState = make(map[string]map[string][]byte)
 	s.EndorsementPolicies = make(map[string]map[string][]byte)
-	s.Invokables = make(map[string]*customMockStub)
+	s.Invokables = make(map[string]*CustomMockStub)
 	s.Keys = list.New()
 	s.ChaincodeEventsChannel = make(chan *pb.ChaincodeEvent, 100) //define large capacity for non-blocking setEvent calls.
 	s.Decorations = make(map[string][]byte)
