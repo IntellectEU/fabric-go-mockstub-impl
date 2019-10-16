@@ -7,11 +7,11 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/hyperledger/fabric/common/util"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	"github.com/hyperledger/fabric/protos/ledger/queryresult"
 	pb "github.com/hyperledger/fabric/protos/peer"
+	"github.com/hyperledger/fabric/vendor/github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/op/go-logging"
 	"github.com/pkg/errors"
 )
@@ -24,6 +24,7 @@ const (
 // Logger for the shim package.
 var mockLogger = logging.MustGetLogger("mock")
 
+// CustomMockStub is an implementation of ChaincodeStubInterface similar to MockStub
 type CustomMockStub struct {
 	// arguments the stub was called with
 	args [][]byte
