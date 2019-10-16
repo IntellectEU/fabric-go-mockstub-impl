@@ -12,6 +12,7 @@ import (
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	"github.com/hyperledger/fabric/protos/ledger/queryresult"
 	pb "github.com/hyperledger/fabric/protos/peer"
+	"github.com/op/go-logging"
 	"github.com/pkg/errors"
 )
 
@@ -19,6 +20,9 @@ const (
 	minUnicodeRuneValue = 0            //U+0000
 	maxUnicodeRuneValue = utf8.MaxRune //U+10FFFF - maximum (and unallocated) code point
 )
+
+// Logger for the shim package.
+var mockLogger = logging.MustGetLogger("mock")
 
 type customMockStub struct {
 	// arguments the stub was called with
@@ -196,7 +200,7 @@ func (stub *customMockStub) GetPrivateDataQueryResult(collection, query string) 
 // GetState retrieves the value for a given key from the ledger
 func (stub *customMockStub) GetState(key string) ([]byte, error) {
 	value := stub.State[key]
-	logger.Debug("MockStub", stub.Name, "Getting", key, value)
+	mockLogger.Debug("MockStub", stub.Name, "Getting", key, value)
 	return value, nil
 }
 
@@ -204,38 +208,38 @@ func (stub *customMockStub) GetState(key string) ([]byte, error) {
 func (stub *customMockStub) PutState(key string, value []byte) error {
 	if stub.TxID == "" {
 		err := errors.New("cannot PutState without a transactions - call stub.MockTransactionStart()?")
-		logger.Errorf("%+v", err)
+		mockLogger.Errorf("%+v", err)
 		return err
 	}
 
 	// If the value is nil or empty, delete the key
 	if len(value) == 0 {
-		logger.Debug("MockStub", stub.Name, "PutState called, but value is nil or empty. Delete ", key)
+		mockLogger.Debug("MockStub", stub.Name, "PutState called, but value is nil or empty. Delete ", key)
 		return stub.DelState(key)
 	}
 
-	logger.Debug("MockStub", stub.Name, "Putting", key, value)
+	mockLogger.Debug("MockStub", stub.Name, "Putting", key, value)
 	stub.State[key] = value
 
 	// insert key into ordered list of keys
 	for elem := stub.Keys.Front(); elem != nil; elem = elem.Next() {
 		elemValue := elem.Value.(string)
 		comp := strings.Compare(key, elemValue)
-		logger.Debug("MockStub", stub.Name, "Compared", key, elemValue, " and got ", comp)
+		mockLogger.Debug("MockStub", stub.Name, "Compared", key, elemValue, " and got ", comp)
 		if comp < 0 {
 			// key < elem, insert it before elem
 			stub.Keys.InsertBefore(key, elem)
-			logger.Debug("MockStub", stub.Name, "Key", key, " inserted before", elem.Value)
+			mockLogger.Debug("MockStub", stub.Name, "Key", key, " inserted before", elem.Value)
 			break
 		} else if comp == 0 {
 			// keys exists, no need to change
-			logger.Debug("MockStub", stub.Name, "Key", key, "already in State")
+			mockLogger.Debug("MockStub", stub.Name, "Key", key, "already in State")
 			break
 		} else { // comp > 0
 			// key > elem, keep looking unless this is the end of the list
 			if elem.Next() == nil {
 				stub.Keys.PushBack(key)
-				logger.Debug("MockStub", stub.Name, "Key", key, "appended")
+				mockLogger.Debug("MockStub", stub.Name, "Key", key, "appended")
 				break
 			}
 		}
@@ -244,7 +248,7 @@ func (stub *customMockStub) PutState(key string, value []byte) error {
 	// special case for empty Keys list
 	if stub.Keys.Len() == 0 {
 		stub.Keys.PushFront(key)
-		logger.Debug("MockStub", stub.Name, "Key", key, "is first element in list")
+		mockLogger.Debug("MockStub", stub.Name, "Key", key, "is first element in list")
 	}
 
 	return nil
@@ -252,7 +256,7 @@ func (stub *customMockStub) PutState(key string, value []byte) error {
 
 // DelState removes the specified `key` and its value from the ledger.
 func (stub *customMockStub) DelState(key string) error {
-	logger.Debug("MockStub", stub.Name, "Deleting", key, stub.State[key])
+	mockLogger.Debug("MockStub", stub.Name, "Deleting", key, stub.State[key])
 	delete(stub.State, key)
 
 	for elem := stub.Keys.Front(); elem != nil; elem = elem.Next() {
@@ -370,10 +374,10 @@ func (stub *customMockStub) InvokeChaincode(chaincodeName string, args [][]byte,
 	}
 	// TODO "args" here should possibly be a serialized pb.ChaincodeInput
 	otherStub := stub.Invokables[chaincodeName]
-	logger.Debug("MockStub", stub.Name, "Invoking peer chaincode", otherStub.Name, args)
+	mockLogger.Debug("MockStub", stub.Name, "Invoking peer chaincode", otherStub.Name, args)
 	//	function, strings := getFuncArgs(args)
 	res := otherStub.MockInvoke(stub.TxID, args)
-	logger.Debug("MockStub", stub.Name, "Invoked peer chaincode", otherStub.Name, "got", fmt.Sprintf("%+v", res))
+	mockLogger.Debug("MockStub", stub.Name, "Invoked peer chaincode", otherStub.Name, "got", fmt.Sprintf("%+v", res))
 	return res
 }
 
@@ -453,7 +457,7 @@ func (stub *customMockStub) GetPrivateDataValidationParameter(collection, key st
 
 // Constructor to initialise the internal State map
 func NewMockStub(name string, cc shim.Chaincode) *customMockStub {
-	logger.Debug("MockStub(", name, cc, ")")
+	mockLogger.Debug("MockStub(", name, cc, ")")
 	s := new(customMockStub)
 	s.Name = name
 	s.cc = cc
