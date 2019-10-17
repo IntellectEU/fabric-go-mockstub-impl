@@ -11,7 +11,8 @@ This implementation of ChaincodeStubInterface almost entirely repeats shim.MockS
 ```
 
 ### Installation
-To install the package simply run in your project
+To include the module in your project just add it to your dependencies:
+```Go
+import "bitbucket.org/yurii_uhlanov_intellecteu/fabric-go-mockstub-impl"
 ```
-go get bitbucket.org/yurii_uhlanov_intellecteu/fabric-go-mockstub-impl
-```
+
