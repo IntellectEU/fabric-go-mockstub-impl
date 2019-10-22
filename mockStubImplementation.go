@@ -333,10 +333,18 @@ func (stub *CustomMockStub) GetStateByPartialCompositeKey(objectType string, att
 		return nil, err
 	}
 
-	baseMockStub := new(shim.MockStub)
-	baseMockStub.PvtState = stub.PvtState
-	baseMockStub.Keys = stub.Keys
-	return shim.NewMockStateRangeQueryIterator(baseMockStub, partialCompositeKey, partialCompositeKey+string(minUnicodeRuneValue)), nil
+	var results []queryresult.KV
+
+	for key, val := range stub.State {
+		if strings.Contains(key, partialCompositeKey) {
+			results = append(results, queryresult.KV{
+				Key:   key,
+				Value: val,
+			})
+		}
+	}
+
+	return newCommonIterator(results), nil
 }
 
 // CreateCompositeKey combines the list of attributes
