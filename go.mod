@@ -1,4 +1,4 @@
-module bitbucket.org/yurii_uhlanov_intellecteu/fabric-go-mockstub-impl
+module github.com/intellecteu/fabric-go-mockstub-impl
 
 go 1.13
 
