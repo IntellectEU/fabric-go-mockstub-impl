@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"unicode/utf8"
 
@@ -373,7 +374,99 @@ func (stub *CustomMockStub) GetStateByPartialCompositeKeyWithPagination(objectTy
 
 func (stub *CustomMockStub) GetQueryResultWithPagination(query string, pageSize int32,
 	bookmark string) (shim.StateQueryIteratorInterface, *pb.QueryResponseMetadata, error) {
-	return nil, nil, nil
+
+	END_SYMBOL := "%%end$$"
+
+	if pageSize < 1 {
+		return nil, nil, errors.New("pageSize must be a positive number")
+	}
+
+	var foundElements []queryresult.KV
+	newBookmark := END_SYMBOL
+
+	// Check if bookmark is an END_SYMBOL
+	if bookmark == END_SYMBOL {
+		return newCommonIterator(foundElements),
+			&pb.QueryResponseMetadata{FetchedRecordsCount: 0, Bookmark: END_SYMBOL},
+			nil
+	}
+
+	// Check if non-empty bookmark exists as an ID
+	if bookmark != "" {
+		if _, isKeyPresent := stub.State[bookmark]; !isKeyPresent {
+			return nil, nil, errors.New(fmt.Sprintf("bookmark %s isn't valid", bookmark))
+		}
+	}
+
+	var selector map[string]*json.RawMessage
+	if err := json.Unmarshal([]byte(query), &selector); err != nil {
+		return nil, nil, errors.New(fmt.Sprintf("Unable to read rich query selector %s: %s", query, err.Error()))
+	}
+	var properties map[string]interface{}
+	if err := json.Unmarshal(*selector["selector"], &properties); err != nil {
+		return nil, nil, errors.New(fmt.Sprintf("Unable to read properties of rich query %s: %s", query, err.Error()))
+	}
+
+	// sort stub.State map
+	var sortedKeys []string
+	for key := range stub.State {
+		sortedKeys = append(sortedKeys, key)
+	}
+	sort.Strings(sortedKeys)
+
+	// Check if there is any element
+	if len(sortedKeys) == 0 {
+		return newCommonIterator(foundElements),
+			&pb.QueryResponseMetadata{FetchedRecordsCount: 0, Bookmark: END_SYMBOL},
+			nil
+	}
+
+	// If bookmark is empty then assign the first key to it
+	if bookmark == "" {
+		bookmark = sortedKeys[0]
+	}
+
+	firstElement := sort.StringSlice(sortedKeys).Search(bookmark)
+
+	keysToSearch := sortedKeys[firstElement:]
+
+	for _, entityKey := range keysToSearch {
+
+		// Check if we found enough elements
+		if int32(len(foundElements)) == pageSize {
+
+			newBookmark = entityKey
+			break
+		}
+
+		// Get value for current key
+		var entityValue map[string]interface{}
+		if err := json.Unmarshal(stub.State[entityKey], &entityValue); err != nil {
+			return nil, nil, errors.New(fmt.Sprintf("Unable to read value for a key %s: %s", entityKey, err.Error()))
+		}
+
+		// Compare each property of the value with the passed selector
+		match := true
+		for requiredPropertyName, requiredPropertyValue := range properties {
+			if entityPropertyValue, isPropertyFound := entityValue[requiredPropertyName]; isPropertyFound == false || requiredPropertyValue != entityPropertyValue {
+
+				match = false
+			}
+		}
+
+		// If it's a match => add this value to the rest of found ones
+		if match {
+			foundElements = append(foundElements, queryresult.KV{Key: entityKey, Value: stub.State[entityKey]})
+		}
+	}
+
+	metadata := &pb.QueryResponseMetadata{
+		FetchedRecordsCount: int32(len(foundElements)),
+		Bookmark:            newBookmark}
+
+	iterator := newCommonIterator(foundElements)
+
+	return iterator, metadata, nil
 }
 
 // InvokeChaincode calls a peered chaincode.
